@@ -114,7 +114,7 @@ pub(crate) fn on_talk_interval_changed(req: &Request) -> Result<Response, Shiori
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct Question(u32);
+pub(crate) struct Question(pub(crate) u32);
 
 impl Question {
   const HOW_OLD_ARE_YOU: Self = Self(0);
@@ -129,10 +129,10 @@ impl Question {
   const WHAT_DO_YOU_DO_WHEN_YOU_ARE_ALONE: Self = Self(10); // ひとりのときは何をして過ごしてる？
   const CAN_I_STAY_TONIGHT: Self = Self(11); // 今日泊まってもいい？
   const IS_THERE_A_PLACE_TO_VISIT: Self = Self(12); // このあたりに観光できる場所はある？
-                                                    // かわいい
-                                                    // 美人
-                                                    // 似顔絵を描く
-                                                    // お腹が空いた
+  const YOU_ARE_CUTE: Self = Self(13); // 『かわいい』
+                                       // 『美人』
+                                       // 『似顔絵を描く』
+                                       // 『お腹が空いた』
 
   fn theme(&self) -> String {
     match *self {
@@ -150,6 +150,7 @@ impl Question {
       }
       Question::CAN_I_STAY_TONIGHT => "今日泊まってもいい？".to_string(),
       Question::IS_THERE_A_PLACE_TO_VISIT => "このあたりに観光できる場所はある？".to_string(),
+      Question::YOU_ARE_CUTE => "かわいい".to_string(),
       _ => unreachable!(),
     }
   }
@@ -158,7 +159,7 @@ impl Question {
     format!("\\![*]\\__q[OnTalkAnswer,{}]{}\\__q", self.0, self.theme())
   }
 
-  fn talk(&self) -> String {
+  pub(crate) fn talk(&self) -> String {
     let m = match *self {
       Question::FEELING_OF_DEATH => "\
       h1111104\\1『幽霊ということは、一度死んだんだよね？\\n\
@@ -277,7 +278,8 @@ impl Question {
       \\n\
       h1111204部屋にはあとで案内させるわ。\\n\
       h1111210くつろいでちょうだい。\
-      ".to_string(),
+      "
+      .to_string(),
       Question::IS_THERE_A_PLACE_TO_VISIT => "\
       \\1『このあたりに観光できる場所はある？』\\n\
       h1113205そうね……h1113304あなた、史跡は好き？\\n\
@@ -299,27 +301,41 @@ impl Question {
       h1111304あなたの目はそう言っていないものね。\
       "
       .to_string(),
+      Question::YOU_ARE_CUTE => "\
+      \\1『かわいい』\\n\
+      h1111101……h1111204あなたの言うそれは、どういう意味？\\n\
+      h1111210無邪気な幼さ？ 小動物の愛らしさ？\\n\
+      h1111210ふふ、考えたこともなかったわ。\\n\
+      あまりにも言われ慣れていないから。\\n\
+      \\n\
+      h1111204参考までに、あなたの基準で私の\"かわいさ\"を説明してみせてほしいわ。\\n\
+      h1111211……さあ、どうぞ？\
+      "
+      .to_string(),
       _ => unreachable!(),
     };
     m + "\\x\\![raise,OnTalk]"
   }
 }
 
+pub(crate) const QUESTIONS: [Question; 13] = [
+  Question::FEELING_OF_DEATH,
+  Question::FATIGUE_OF_LIFE,
+  Question::HOW_TALL_ARE_YOU,
+  Question::HOW_WEIGHT_ARE_YOU,
+  Question::HOW_MUCH_IS_YOUR_BWH,
+  Question::HOW_OLD_ARE_YOU,
+  Question::HOW_TO_GET_TEALEAVES,
+  Question::DO_SERVENTS_HAVE_NAMES,
+  Question::CALL_YOU_MASTER,
+  Question::WHAT_DO_YOU_DO_WHEN_YOU_ARE_ALONE,
+  Question::CAN_I_STAY_TONIGHT,
+  Question::IS_THERE_A_PLACE_TO_VISIT,
+  Question::YOU_ARE_CUTE,
+];
+
 pub(crate) fn on_talk(_req: &Request) -> Result<Response, ShioriError> {
-  let mut questions = [
-    Question::FEELING_OF_DEATH,
-    Question::FATIGUE_OF_LIFE,
-    Question::HOW_TALL_ARE_YOU,
-    Question::HOW_WEIGHT_ARE_YOU,
-    Question::HOW_MUCH_IS_YOUR_BWH,
-    Question::HOW_OLD_ARE_YOU,
-    Question::HOW_TO_GET_TEALEAVES,
-    Question::DO_SERVENTS_HAVE_NAMES,
-    Question::CALL_YOU_MASTER,
-    Question::WHAT_DO_YOU_DO_WHEN_YOU_ARE_ALONE,
-    Question::CAN_I_STAY_TONIGHT,
-    Question::IS_THERE_A_PLACE_TO_VISIT,
-  ];
+  let mut questions = QUESTIONS.to_vec();
   questions.sort_by(|a, b| a.0.cmp(&b.0));
 
   let mut m = "\\_q\\b[2]".to_string();
